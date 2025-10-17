@@ -1,1 +1,3 @@
 .venv
+data/browser_profile/
+__pycache__/

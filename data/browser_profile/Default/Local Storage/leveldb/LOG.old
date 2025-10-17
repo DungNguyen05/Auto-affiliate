@@ -1,0 +1,6 @@
+2025/10/17-22:04:40.616 331352 Reusing MANIFEST /Users/dungnguyenn/Auto Affiliate/data/browser_profile/Default/Local Storage/leveldb/MANIFEST-000001
+2025/10/17-22:04:40.618 331352 Recovering log #3
+2025/10/17-22:04:40.618 331352 Reusing old log /Users/dungnguyenn/Auto Affiliate/data/browser_profile/Default/Local Storage/leveldb/000003.log 
+2025/10/17-22:04:52.149 331356 Level-0 table #5: started
+2025/10/17-22:04:52.156 331356 Level-0 table #5: 56104 bytes OK
+2025/10/17-22:04:52.159 331356 Delete type=0 #3

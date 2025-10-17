@@ -7,13 +7,7 @@ import sys
 
 # Add root directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from config.settings import (
-    BROWSER_PROFILE_DIR,
-    CHROME_DRIVER_PATH,
-    HEADLESS_MODE,
-    PAGE_LOAD_TIMEOUT,
-    IMPLICIT_WAIT
-)
+from config.settings import *
 
 
 class BrowserManager:
@@ -52,9 +46,6 @@ class BrowserManager:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-gpu")
-        
-        # User agent
-        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
         
         # Headless mode (nếu cần)
         if self.headless:
@@ -117,7 +108,7 @@ class BrowserManager:
         self.driver.get(url)
         time.sleep(3)  # Đợi page load
     
-    def wait_for_manual_login(self, wait_time=60):
+    def wait_for_manual_login(self, wait_time=LOGIN_WAIT_TIME):
         """Đợi user đăng nhập thủ công"""
         print(f"\n{'='*60}")
         print("⏳ VUI LÒNG ĐĂNG NHẬP THỦ CÔNG VÀO SHOPEE AFFILIATE")

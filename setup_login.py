@@ -1,58 +1,58 @@
 """
-Script setup ban đầu - Chạy 1 lần để đăng nhập Shopee Affiliate
+Script setup ban đầu - Chạy 1 lần để đăng nhập Shopee Affiliate và Threads
 Sau khi chạy xong, cookies sẽ được lưu và không cần login lại
 
 Cách dùng:
-    python setup_shopee_login.py          # Setup lần đầu
-    python setup_shopee_login.py test     # Test auto-login
+    python setup_login.py
 """
 
 from src.core.browser_manager import BrowserManager
-from config.settings import SHOPEE_AFFILIATE_URL, LOGIN_WAIT_TIME
+from config.settings import SHOPEE_AFFILIATE_URL
 
 
 def setup_login():
-    """Setup lần đầu - Đăng nhập và lưu cookies"""
+    """Setup lần đầu - Đăng nhập Shopee và Threads, lưu cookies"""
     
     print("\n" + "="*60)
-    print("🚀 SETUP SHOPEE AFFILIATE - LẦN ĐẦU TIÊN")
+    print("🚀 SETUP LOGIN - SHOPEE AFFILIATE & THREADS")
     print("="*60 + "\n")
     
     # Khởi tạo browser (KHÔNG headless để thấy GUI)
     browser = BrowserManager(headless=False)
     
     try:
-        # 1. Khởi tạo driver
+        # Khởi tạo driver
         driver = browser.init_driver()
         
-        # 2. Kiểm tra profile có sẵn chưa
-        if browser.is_profile_exists():
-            print("\n⚠️  Profile đã tồn tại. Sẽ thử mở với profile có sẵn...")
-            print("Nếu đã đăng nhập rồi thì sẽ tự động vào được!\n")
-        else:
-            print("\n📝 Đây là lần đầu tiên. Bạn cần đăng nhập thủ công.\n")
+        # Mở Shopee Affiliate
+        print("📦 Đang mở Shopee Affiliate...")
+        driver.execute_script(f"window.open('{SHOPEE_AFFILIATE_URL}', '_blank');")
         
-        # 3. Mở trang Shopee Affiliate
-        browser.open_url(SHOPEE_AFFILIATE_URL)
-        
-        # 4. Đợi user đăng nhập thủ công
-        browser.wait_for_manual_login(wait_time=LOGIN_WAIT_TIME)
-        
-        # 5. Đóng browser (cookies tự động lưu)
-        browser.close()
+        # Mở Threads
+        print("🧵 Đang mở Threads...")
+        driver.execute_script("window.open('https://www.threads.net/', '_blank');")
         
         print("\n" + "="*60)
-        print("✅ SETUP HOÀN TẤT!")
+        print("✅ ĐÃ MỞ 2 TAB!")
         print("="*60)
-        print("\n📌 Cookies đã được lưu vào: data/browser_profile/")
-        print("📌 Lần sau chạy script sẽ TỰ ĐỘNG đăng nhập!")
-        print("\n💡 Tip: Chạy lại script này để kiểm tra auto-login\n")
+        print("\n📌 Vui lòng đăng nhập vào cả 2 trang:")
+        print("   1️⃣  Shopee Affiliate")
+        print("   2️⃣  Threads")
+        print("\n⚠️  Sau khi đăng nhập xong, đóng browser để lưu cookies!")
+        print("="*60 + "\n")
+        
+        # Đợi user tự đóng browser
+        input("Nhấn Enter sau khi bạn đã đăng nhập xong và muốn đóng browser...")
+        
+        browser.close()
+        
+        print("\n✅ Cookies đã được lưu!")
         
     except Exception as e:
         print(f"\n❌ Lỗi: {e}")
         browser.close()
         raise
 
+
 if __name__ == "__main__":
-    import sys
     setup_login()

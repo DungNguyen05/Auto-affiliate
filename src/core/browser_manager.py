@@ -33,9 +33,12 @@ class BrowserManager:
         
         # Chrome options
         options = Options()
+
+        options.add_argument("--lang=en-US")
         
         # User data directory - LƯU COOKIES Ở ĐÂY
         options.add_argument(f"--user-data-dir={self.profile_path}")
+        
         
         # Anti-detection
         options.add_argument("--disable-blink-features=AutomationControlled")
@@ -107,22 +110,6 @@ class BrowserManager:
         print(f"🌐 Đang mở: {url}")
         self.driver.get(url)
         time.sleep(3)  # Đợi page load
-    
-    def wait_for_manual_login(self, wait_time=LOGIN_WAIT_TIME):
-        """Đợi user đăng nhập thủ công"""
-        print(f"\n{'='*60}")
-        print("⏳ VUI LÒNG ĐĂNG NHẬP THỦ CÔNG VÀO SHOPEE AFFILIATE")
-        print(f"{'='*60}")
-        print(f"Bạn có {wait_time} giây để đăng nhập...")
-        print("Sau khi đăng nhập xong, cứ để yên, script sẽ tự động tiếp tục!")
-        print(f"{'='*60}\n")
-        
-        # Countdown
-        for remaining in range(wait_time, 0, -10):
-            print(f"⏰ Còn {remaining} giây...")
-            time.sleep(10)
-        
-        print("\n✅ Hoàn tất! Cookies đã được lưu vào profile.")
     
     def close(self):
         """Đóng browser"""

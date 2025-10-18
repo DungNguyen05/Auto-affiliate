@@ -20,11 +20,16 @@ class Database:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = None
+        self.connect()
         self.init_database()
     
-    def init_database(self):
-        """Khởi tạo database và tạo bảng"""
+    def connect(self):
+        """Kết nối database, tạo file nếu chưa có"""
         self.conn = sqlite3.connect(self.db_path)
+        print(f"✅ Đã kết nối database: {self.db_path}")
+    
+    def init_database(self):
+        """Tạo các bảng nếu chưa tồn tại"""
         cursor = self.conn.cursor()
         
         # Bảng chính: lưu thông tin bài viết
@@ -78,7 +83,7 @@ class Database:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_is_posted ON posts(is_posted)')
         
         self.conn.commit()
-        print(f"✅ Database đã sẵn sàng: {self.db_path}")
+        print(f"✅ Database schema đã sẵn sàng")
     
     def generate_content_hash(self, content):
         """Tạo hash từ content để phát hiện trùng lặp"""

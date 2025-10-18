@@ -9,6 +9,8 @@ from src.crawler.crawl_personal_page import ThreadsCrawler
 from src.database.database import Database
 from src.downloader.media_downloader import MediaDownloader
 from src.poster.threads_poster import ThreadsPoster
+from src.converter.affiliate_link_converter import ShopeeConverter
+from src.utils.text_utils import replace_shopee_links
 
 
 def main():
@@ -16,9 +18,11 @@ def main():
     Luồng chính:
     1. Crawl bài viết từ trang cá nhân
     2. Lưu vào database
-    3. Tải media về local
-    4. Upload lại lên Threads
-    5. Xóa media tạm
+    3. Convert link Shopee thành affiliate
+    4. Thay thế link trong content
+    5. Tải media về local
+    6. Upload lại lên Threads
+    7. Xóa media tạm
     """
     
     print("\n" + "="*80)
@@ -72,6 +76,41 @@ def main():
             return
         
         print(f"✅ Đã lưu vào database với post_id={post_id}")
+        
+        # 2.5. CONVERT SHOPEE LINKS
+        if post_data['shopee_links']:
+            print("\n" + "=" * 80)
+            print("BƯỚC 2.5: CONVERT SHOPEE LINKS THÀNH AFFILIATE")
+            print("=" * 80 + "\n")
+            
+            converter = ShopeeConverter(browser)
+            affiliate_links = []
+            
+            for shop_link in post_data['shopee_links']:
+                aff_link = converter.convert_to_affiliate(shop_link)
+                if aff_link:
+                    affiliate_links.append(aff_link)
+                    # Cập nhật vào database
+                    db.update_affiliate_link(post_id, shop_link, aff_link)
+                time.sleep(2)  # Đợi giữa các lần convert
+            
+            # Thay thế link trong content
+            if affiliate_links:
+                print("\n🔄 Thay thế link trong content...")
+                post_data['content_1'] = replace_shopee_links(
+                    post_data['content_1'], 
+                    post_data['shopee_links'], 
+                    affiliate_links
+                )
+                
+                if post_data['content_2']:
+                    post_data['content_2'] = replace_shopee_links(
+                        post_data['content_2'], 
+                        post_data['shopee_links'], 
+                        affiliate_links
+                    )
+                
+                print("✅ Đã thay thế link trong content!")
         
         # 3. TẢI MEDIA VỀ LOCAL
         print("\n" + "=" * 80)

@@ -119,7 +119,7 @@ class ThreadsCrawler:
         posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
         print("✅ Đã lấy được post_list:")
 
-        first_post = posts[0]  # Chỉ lấy bài đầu tiên
+        first_post = posts[1]  # Chỉ lấy bài đầu tiên
         
         # Extract content
         content_1 = ""

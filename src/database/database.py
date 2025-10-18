@@ -2,12 +2,21 @@ import sqlite3
 import hashlib
 from pathlib import Path
 from datetime import datetime
+import sys
+
+# Add root directory to path
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 
 class Database:
     """Quản lý database SQLite để lưu posts từ Threads"""
     
-    def __init__(self, db_path="../../data/threads_posts.db"):
+    def __init__(self, db_path=None):
+        if db_path is None:
+            # Tự động xác định đường dẫn từ root project
+            root_dir = Path(__file__).parent.parent.parent
+            db_path = root_dir / "data" / "threads_posts.db"
+        
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = None
@@ -69,7 +78,7 @@ class Database:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_is_posted ON posts(is_posted)')
         
         self.conn.commit()
-        print("✅ Database đã sẵn sàng!")
+        print(f"✅ Database đã sẵn sàng: {self.db_path}")
     
     def generate_content_hash(self, content):
         """Tạo hash từ content để phát hiện trùng lặp"""

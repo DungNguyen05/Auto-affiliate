@@ -56,12 +56,48 @@ class ThreadsCrawler:
             print(f"  ❌ Lỗi: {e}")
             return None
     
+    def extract_media(self, post_element):
+        """Extract video và image từ bài viết"""
+        videos = []
+        images = []
+        
+        try:
+            # Tìm tất cả element có class "x1lliihq x5yr21d xh8yej3"
+            media_elements = post_element.find_elements(
+                By.CSS_SELECTOR,
+                '.x1lliihq.x5yr21d.xh8yej3'
+            )
+            
+            print(f"\n  🎬 Tìm thấy {len(media_elements)} media elements")
+            
+            for i, element in enumerate(media_elements, 1):
+                tag_name = element.tag_name
+                
+                if tag_name == 'video':
+                    # Extract video src
+                    video_src = element.get_attribute('src')
+                    if video_src:
+                        videos.append(video_src)
+                        print(f"  ✅ Video {i}: {video_src}")
+                
+                elif tag_name == 'img':
+                    # Extract image src
+                    img_src = element.get_attribute('src')
+                    if img_src:
+                        images.append(img_src)
+                        print(f"  ✅ Image {i}: {img_src}")
+        
+        except Exception as e:
+            print(f"  ❌ Lỗi extract media: {e}")
+        
+        return videos, images
+    
     def crawl_profile(self, profile_url):
         """
         Crawl bài viết đầu tiên từ trang cá nhân
         
         Returns:
-            dict: {content_1, content_2, shopee_links}
+            dict: {content_1, content_2, shopee_links, videos, images}
         """
         print(f"\n{'='*60}")
         print(f"🔍 Crawl: {profile_url}")
@@ -75,17 +111,21 @@ class ThreadsCrawler:
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         
-        # Tìm container thứ 2
+        # Tìm danh sách container
         containers = self.driver.find_elements(
             By.CSS_SELECTOR, 
             'div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6'
         )
+
+        if len(containers) < 3:
+            raise Exception(f"❌ Chỉ tìm thấy {len(containers)} container (cần >= 3)!")
+
+        # Gán container thứ 3 làm danh sách bài viết
+        post_list = containers[2]
+        print("✅ Đã lấy được post_list:")
         
-        if len(containers) < 2:
-            raise Exception(f"❌ Chỉ tìm thấy {len(containers)} container!")
-        
-        # Lấy bài viết đầu tiên
-        first_post = containers[1].find_element(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+        first_post = post_list.find_element(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+
         
         # Extract content
         content_1 = ""
@@ -130,6 +170,12 @@ class ThreadsCrawler:
         except:
             pass
         
+        # Extract video và image
+        print(f"\n{'='*60}")
+        print(f"🎬 Đang extract video/image...")
+        print(f"{'='*60}")
+        videos, images = self.extract_media(first_post)
+        
         # Extract Shopee links
         print(f"\n{'='*60}")
         print(f"🔗 Tìm thấy {len(redirect_links)} links")
@@ -144,7 +190,9 @@ class ThreadsCrawler:
         result = {
             'content_1': content_1,
             'content_2': content_2,
-            'shopee_links': shopee_links
+            'shopee_links': shopee_links,
+            'videos': videos,
+            'images': images
         }
         
         print(f"\n{'='*60}")
@@ -155,6 +203,12 @@ class ThreadsCrawler:
         print(f"Shopee Links: {len(shopee_links)}")
         for i, link in enumerate(shopee_links, 1):
             print(f"  {i}. {link}")
+        print(f"Videos: {len(videos)}")
+        for i, video in enumerate(videos, 1):
+            print(f"  {i}. {video}")
+        print(f"Images: {len(images)}")
+        for i, image in enumerate(images, 1):
+            print(f"  {i}. {image}")
         print(f"{'='*60}\n")
         
         return result

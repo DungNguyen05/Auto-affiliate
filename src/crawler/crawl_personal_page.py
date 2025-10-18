@@ -107,25 +107,19 @@ class ThreadsCrawler:
         self.driver.get(profile_url)
         time.sleep(5)
         
-        # Scroll
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        
-        # Tìm danh sách container
+        # Tìm container thứ 3
         containers = self.driver.find_elements(
             By.CSS_SELECTOR, 
             'div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6'
         )
-
-        if len(containers) < 3:
-            raise Exception(f"❌ Chỉ tìm thấy {len(containers)} container (cần >= 3)!")
-
-        # Gán container thứ 3 làm danh sách bài viết
-        post_list = containers[2]
-        print("✅ Đã lấy được post_list:")
         
-        first_post = post_list.find_element(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+        if len(containers) < 3:
+            raise Exception(f"❌ Chỉ tìm thấy {len(containers)} container!")
+        
+        posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+        print("✅ Đã lấy được post_list:")
 
+        first_post = posts[0]  # Chỉ lấy bài đầu tiên
         
         # Extract content
         content_1 = ""
@@ -217,7 +211,7 @@ class ThreadsCrawler:
 def test_crawler():
     """Test crawler"""
     
-    target_url = "https://www.threads.net/@cam_review08"
+    target_url = "https://www.threads.com/@reviewby_quyt"
     
     print("\n" + "="*60)
     print("🧪 TEST THREADS CRAWLER")

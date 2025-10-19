@@ -119,6 +119,7 @@ class ThreadsPoster:
 
             # 6. Click nút "Post" để đăng bài
             print("\n📍 Bước cuối: Click nút 'Post' để đăng bài...")
+            time.sleep(10)
             post_final_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((
                     By.XPATH,
@@ -138,16 +139,18 @@ class ThreadsPoster:
                             d.find_elements(By.XPATH, "//div[normalize-space(text())='Post failed to upload']")
                 )
                 
-                if self.driver.find_elements(By.XPATH, "//div[normalize-space(text())='Posted']"):
-                    print("\n" + "=" * 60)
-                    print("✅ ĐĂNG BÀI THÀNH CÔNG!")
-                    print("=" * 60 + "\n")
-                    return True
-                else:
+                # Kiểm tra kết quả
+                if self.driver.find_elements(By.XPATH, "//div[normalize-space(text())='Post failed to upload']"):
                     print("\n" + "=" * 60)
                     print("❌ ĐĂNG BÀI THẤT BẠI!")
                     print("=" * 60 + "\n")
                     return False
+                else:
+                    print("\n" + "=" * 60)
+                    print("✅ ĐĂNG BÀI THÀNH CÔNG (hoặc không có thông báo)!")
+                    print("=" * 60 + "\n")
+                    return True
+
                 
             except TimeoutException:
                 print("❌ Timeout: Không nhận được thông báo!")

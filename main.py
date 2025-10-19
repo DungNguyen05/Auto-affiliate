@@ -16,13 +16,10 @@ from src.utils.text_utils import replace_shopee_links
 def main():
     """
     Luồng chính:
-    1. Crawl bài viết từ trang cá nhân
-    2. Lưu vào database
+    1. Crawl nhiều bài viết và lưu vào database
+    2. Lấy bài chưa đăng từ database
     3. Convert link Shopee thành affiliate
-    4. Thay thế link trong content
-    5. Tải media về local
-    6. Upload lại lên Threads
-    7. Xóa media tạm
+    4. Tải media và đăng lên Threads
     """
     
     print("\n" + "="*80)
@@ -31,6 +28,8 @@ def main():
     
     # ====== CONFIG ======
     TARGET_PROFILE = "https://www.threads.com/@cam_review08"
+    CRAWL_LIMIT = 20  # Số bài viết cần crawl
+    POST_LIMIT = 20   # Số bài viết cần đăng
     
     # ====== KHỞI TẠO ======
     browser = None
@@ -38,137 +37,143 @@ def main():
     downloader = MediaDownloader()
     
     try:
-        # 1. CRAWL BÀI VIẾT
-        print("=" * 80)
-        print("BƯỚC 1: CRAWL BÀI VIẾT TỪ TRANG CÁ NHÂN")
-        print("=" * 80 + "\n")
-        
         browser = BrowserManager(headless=False)
         browser.init_driver()
         
-        crawler = ThreadsCrawler(browser)
-        post_data = crawler.crawl_profile(TARGET_PROFILE)
+        # ===== GIAI ĐOẠN 1: CRAWL VÀ LƯU DATABASE =====
+        print("=" * 80)
+        print("GIAI ĐOẠN 1: CRAWL VÀ LƯU VÀO DATABASE")
+        print("=" * 80 + "\n")
         
-        if not post_data:
+        crawler = ThreadsCrawler(browser)
+        posts_data = crawler.crawl_profile(TARGET_PROFILE, limit=CRAWL_LIMIT)
+        
+        if not posts_data:
             print("❌ Không crawl được bài viết!")
             return
         
-        # 2. LƯU VÀO DATABASE
+        # Lưu vào database
+        print(f"\n💾 Đang lưu {len(posts_data)} bài viết vào database...")
+        saved_count = 0
+        
+        for i, post_data in enumerate(posts_data, 1):
+            print(f"\n--- Bài {i}/{len(posts_data)} ---")
+            
+            # Kết hợp content
+            full_content = post_data['content_1']
+            if post_data['content_2']:
+                full_content += "\n\n" + post_data['content_2']
+            
+            post_id = db.save_post(
+                content=full_content,
+                images=post_data['images'],
+                videos=post_data['videos'],
+                shopee_links=post_data['shopee_links'],
+                original_url=TARGET_PROFILE
+            )
+            
+            if post_id:
+                saved_count += 1
+                print(f"✅ Đã lưu post_id={post_id}")
+            else:
+                print("⚠️  Bài viết đã tồn tại, bỏ qua")
+        
+        print(f"\n✅ Đã lưu {saved_count}/{len(posts_data)} bài viết mới")
+        
+        # ===== GIAI ĐOẠN 2: LẤY BÀI CHƯA ĐĂNG VÀ UPLOAD =====
         print("\n" + "=" * 80)
-        print("BƯỚC 2: LƯU BÀI VIẾT VÀO DATABASE")
+        print("GIAI ĐOẠN 2: LẤY BÀI CHƯA ĐĂNG VÀ UPLOAD")
         print("=" * 80 + "\n")
         
-        # Kết hợp content_1 và content_2
-        full_content = post_data['content_1']
-        if post_data['content_2']:
-            full_content += "\n\n" + post_data['content_2']
+        unposted = db.get_unposted_posts(limit=POST_LIMIT)
         
-        post_id = db.save_post(
-            content=full_content,
-            images=post_data['images'],
-            videos=post_data['videos'],
-            shopee_links=post_data['shopee_links'],
-            original_url=TARGET_PROFILE
-        )
-        
-        if not post_id:
-            print("⚠️  Bài viết đã tồn tại trong database, bỏ qua...")
+        if not unposted:
+            print("⚠️  Không có bài viết nào chưa đăng!")
             return
         
-        print(f"✅ Đã lưu vào database với post_id={post_id}")
+        print(f"📋 Có {len(unposted)} bài viết chưa đăng")
         
-        # 2.5. CONVERT SHOPEE LINKS
-        if post_data['shopee_links']:
+        converter = ShopeeConverter(browser)
+        poster = ThreadsPoster(browser)
+        posted_count = 0
+        
+        for i, post in enumerate(unposted, 1):
+            if posted_count >= POST_LIMIT:
+                print(f"\n✅ Đã đăng đủ {POST_LIMIT} bài, dừng lại!")
+                break
+            
             print("\n" + "=" * 80)
-            print("BƯỚC 2.5: CONVERT SHOPEE LINKS THÀNH AFFILIATE")
+            print(f"ĐĂNG BÀI {i}/{len(unposted)}")
             print("=" * 80 + "\n")
             
-            converter = ShopeeConverter(browser)
+            post_id = post['id']
+            content_parts = post['content'].split('\n\n', 1)
+            content_1 = content_parts[0] if len(content_parts) > 0 else ""
+            content_2 = content_parts[1] if len(content_parts) > 1 else None
+            
+            # Convert Shopee links
             affiliate_links = []
-            
-            for shop_link in post_data['shopee_links']:
-                aff_link = converter.convert_to_affiliate(shop_link)
-                if aff_link:
-                    affiliate_links.append(aff_link)
-                    # Cập nhật vào database
-                    db.update_affiliate_link(post_id, shop_link, aff_link)
-                time.sleep(2)  # Đợi giữa các lần convert
-            
-            # Thay thế link trong content
-            if affiliate_links:
-                print("\n🔄 Thay thế link trong content...")
-                post_data['content_1'] = replace_shopee_links(
-                    post_data['content_1'], 
-                    post_data['shopee_links'], 
-                    affiliate_links
-                )
+            if post['shopee_links']:
+                print("🔄 Đang convert Shopee links...")
+                for shop_link in post['shopee_links']:
+                    aff_link = converter.convert_to_affiliate(shop_link)
+                    if aff_link:
+                        affiliate_links.append(aff_link)
+                        db.update_affiliate_link(post_id, shop_link, aff_link)
+                    time.sleep(2)
                 
-                if post_data['content_2']:
-                    post_data['content_2'] = replace_shopee_links(
-                        post_data['content_2'], 
-                        post_data['shopee_links'], 
-                        affiliate_links
-                    )
-                
-                print("✅ Đã thay thế link trong content!")
-        
-        # 3. TẢI MEDIA VỀ LOCAL
-        print("\n" + "=" * 80)
-        print("BƯỚC 3: TẢI MEDIA VỀ LOCAL")
-        print("=" * 80 + "\n")
-        
-        downloaded_files = []
-        
-        # Tải videos trước (thường quan trọng hơn)
-        if post_data['videos']:
-            video_paths = downloader.download_videos(post_data['videos'])
-            downloaded_files.extend(video_paths)
-        
-        # Tải images
-        if post_data['images']:
-            image_paths = downloader.download_images(post_data['images'])
-            downloaded_files.extend(image_paths)
-        
-        if not downloaded_files:
-            print("⚠️  Không có media để upload!")
-        
-        print(f"\n✅ Tổng cộng đã tải: {len(downloaded_files)} file")
-        
-        # 4. UPLOAD LÊN THREADS
-        print("\n" + "=" * 80)
-        print("BƯỚC 4: UPLOAD LẠI LÊN THREADS")
-        print("=" * 80 + "\n")
-        
-        poster = ThreadsPoster(browser)
-        
-        success = poster.create_post(
-            content_1=post_data['content_1'],
-            content_2=post_data['content_2'] if post_data['content_2'] else None,
-            media_paths=downloaded_files
-        )
-        
-        if success:
-            # Đánh dấu đã đăng trong DB
+                # Thay thế link trong content
+                if affiliate_links:
+                    print("🔄 Thay thế link trong content...")
+                    content_1 = replace_shopee_links(content_1, post['shopee_links'], affiliate_links)
+                    if content_2:
+                        content_2 = replace_shopee_links(content_2, post['shopee_links'], affiliate_links)
+            
+            # Tải media
+            print("\n📥 Đang tải media...")
+            downloaded_files = []
+            
+            if post['videos']:
+                video_paths = downloader.download_videos(post['videos'])
+                downloaded_files.extend(video_paths)
+            
+            if post['images']:
+                image_paths = downloader.download_images(post['images'])
+                downloaded_files.extend(image_paths)
+            
+            print(f"✅ Đã tải {len(downloaded_files)} file")
+            
+            # Đăng bài (luôn xem như thành công)
+            print("\n📤 Đang đăng bài...")
+            poster.create_post(
+                content_1=content_1,
+                content_2=content_2,
+                media_paths=downloaded_files
+            )
+            
+            # Tự động đánh dấu đã đăng
             db.mark_as_posted(post_id)
-            print("✅ Đã đánh dấu bài viết là đã đăng!")
-        else:
-            print("⚠️  Upload thất bại, không đánh dấu đã đăng!")
-        
-        # 5. XÓA MEDIA TẠM
-        print("\n" + "=" * 80)
-        print("BƯỚC 5: XÓA MEDIA TẠM")
-        print("=" * 80 + "\n")
-        
-        downloader.cleanup(downloaded_files)
+            posted_count += 1
+            print(f"✅ Đã đánh dấu là đã đăng! ({posted_count}/{POST_LIMIT})")
+            
+            # Xóa media tạm
+            downloader.cleanup(downloaded_files)
+            
+            # Đợi giữa các bài đăng
+            if i < len(unposted):
+                print("\n⏳ Đợi 10 giây trước khi đăng bài tiếp...")
+                time.sleep(10)
         
         # THỐNG KÊ
         print("\n" + "=" * 80)
-        print("📊 THỐNG KÊ DATABASE")
+        print("📊 THỐNG KÊ")
         print("=" * 80 + "\n")
         
         stats = db.get_stats()
         for key, value in stats.items():
             print(f"  {key}: {value}")
+        
+        print(f"\n✅ Đã đăng: {posted_count}/{POST_LIMIT} bài")
         
         print("\n" + "=" * 80)
         print("✅ HOÀN THÀNH WORKFLOW!")

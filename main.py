@@ -28,8 +28,8 @@ def main():
     
     # ====== CONFIG ======
     TARGET_PROFILE = "https://www.threads.com/@puca.daily"
-    CRAWL_LIMIT = 3  # Số bài viết cần crawl
-    POST_LIMIT = 3   # Số bài viết cần đăng
+    CRAWL_LIMIT = 15  # Số bài viết cần crawl
+    POST_LIMIT = 15   # Số bài viết cần đăng
     
     # ====== KHỞI TẠO ======
     browser = None
@@ -37,7 +37,7 @@ def main():
     downloader = MediaDownloader()
     
     try:
-        browser = BrowserManager(headless=False)
+        browser = BrowserManager(headless=True)
         browser.init_driver()
         
         # ===== GIAI ĐOẠN 1: CRAWL VÀ LƯU DATABASE =====

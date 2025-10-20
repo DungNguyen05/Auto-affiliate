@@ -5,6 +5,7 @@ from urllib.parse import urlparse, parse_qs, unquote
 from pathlib import Path
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 import requests
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -26,6 +27,90 @@ class ThreadsCrawler:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         })
+        
+        # Khởi tạo ActionChains để mô phỏng chuột
+        self.actions = ActionChains(self.driver)
+    
+    def human_like_mouse_move(self, element=None):
+        """
+        Mô phỏng di chuột tự nhiên như người dùng
+        
+        Args:
+            element: Element để di chuột đến (optional)
+        """
+        try:
+            if element:
+                # Di chuột đến element với tốc độ tự nhiên
+                self.actions.move_to_element(element).perform()
+            else:
+                # Di chuột random trong viewport
+                viewport_width = self.driver.execute_script("return window.innerWidth")
+                viewport_height = self.driver.execute_script("return window.innerHeight")
+                
+                # Tạo tọa độ random
+                x = random.randint(100, viewport_width - 100)
+                y = random.randint(100, viewport_height - 100)
+                
+                # Di chuột đến tọa độ random
+                body = self.driver.find_element(By.TAG_NAME, 'body')
+                self.actions.move_to_element_with_offset(body, x, y).perform()
+            
+            # Đợi random giống người thật
+            time.sleep(random.uniform(0.3, 0.8))
+            
+        except Exception as e:
+            pass  # Không cần báo lỗi, chỉ là mô phỏng
+    
+    def human_like_scroll(self, scroll_amount=None):
+        """
+        Mô phỏng scroll tự nhiên như người dùng
+        
+        Args:
+            scroll_amount: Số pixel cần scroll (None = random)
+        """
+        if scroll_amount is None:
+            scroll_amount = random.randint(300, 700)
+        
+        # Scroll từ từ, không scroll một lúc
+        steps = random.randint(3, 6)
+        scroll_per_step = scroll_amount // steps
+        
+        for _ in range(steps):
+            self.driver.execute_script(f"window.scrollBy(0, {scroll_per_step});")
+            time.sleep(random.uniform(0.1, 0.3))
+        
+        # Đợi thêm chút như người thật
+        time.sleep(random.uniform(0.5, 1.2))
+    
+    def random_pause(self, min_sec=0.5, max_sec=2.0):
+        """Dừng random để giống người thật"""
+        time.sleep(random.uniform(min_sec, max_sec))
+    
+    def simulate_reading(self, element):
+        """
+        Mô phỏng đọc nội dung - di chuột qua element và dừng lại
+        
+        Args:
+            element: Element cần "đọc"
+        """
+        try:
+            # Di chuột đến element
+            self.human_like_mouse_move(element)
+            
+            # Dừng lại như đang đọc (2-5 giây)
+            time.sleep(random.uniform(2.0, 5.0))
+            
+            # Di chuột random nhẹ trong element
+            for _ in range(random.randint(1, 3)):
+                offset_x = random.randint(-50, 50)
+                offset_y = random.randint(-20, 20)
+                try:
+                    self.actions.move_to_element_with_offset(element, offset_x, offset_y).perform()
+                    time.sleep(random.uniform(0.3, 0.8))
+                except:
+                    pass
+        except:
+            pass
     
     def extract_shopee_link(self, redirect_url):
         """Extract link Shopee từ redirect URL"""
@@ -40,7 +125,7 @@ class ThreadsCrawler:
             else:
                 real_url = redirect_url
             
-            time.sleep(1)
+            time.sleep(random.uniform(0.8, 1.5))  # Random delay
             response = self.session.get(real_url, allow_redirects=True, timeout=10)
             final_url = response.url
             
@@ -99,7 +184,7 @@ class ThreadsCrawler:
             )
             
             if len(containers) < 3:
-                time.sleep(1)
+                self.random_pause(0.8, 1.5)
                 continue
             
             posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
@@ -112,8 +197,11 @@ class ThreadsCrawler:
                     print(f"  ✅ Bài viết {post_index + 1} đã load xong!")
                     return True
             
-            self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
-            time.sleep(0.5)
+            # Scroll tự nhiên thay vì dùng Keys.PAGE_DOWN
+            self.human_like_scroll()
+            
+            # Random pause giữa các lần scroll
+            self.random_pause(0.3, 0.8)
         
         print(f"  ⚠️ Timeout: Không load được bài {post_index + 1}")
         return False
@@ -135,13 +223,27 @@ class ThreadsCrawler:
         print(f"{'='*60}\n")
         
         self.driver.get(profile_url)
-        time.sleep(5)
+        
+        # Đợi trang load và mô phỏng hành vi người dùng
+        print("⏳ Đang load trang...")
+        time.sleep(random.uniform(3, 5))
+        
+        # Di chuột random để giống người thật
+        print("🖱️  Mô phỏng hành vi người dùng...")
+        for _ in range(random.randint(2, 4)):
+            self.human_like_mouse_move()
+        
+        # Scroll nhẹ lên xuống như người thật
+        self.human_like_scroll(random.randint(100, 300))
+        time.sleep(random.uniform(0.5, 1.0))
+        self.driver.execute_script("window.scrollTo(0, 0);")  # Scroll về đầu
+        time.sleep(random.uniform(1, 2))
         
         results = []
         
         for i in range(limit):
-            post_index = i  # Index thực trong mảng posts (bắt đầu từ 0)
-            display_number = i + 1  # Số hiển thị cho người dùng (bắt đầu từ 1)
+            post_index = i
+            display_number = i + 1
             
             print(f"\n{'='*60}")
             print(f"📝 Crawl bài viết {display_number}/{limit}")
@@ -167,6 +269,10 @@ class ThreadsCrawler:
                 break
             
             current_post = posts[post_index]
+            
+            # Mô phỏng đọc bài viết
+            print("👀 Mô phỏng đọc bài viết...")
+            self.simulate_reading(current_post)
             
             content_1 = ""
             content_2 = ""
@@ -242,6 +348,15 @@ class ThreadsCrawler:
             print(f"Videos: {len(videos)}")
             print(f"Images: {len(images)}")
             print(f"{'='*60}\n")
+            
+            # Pause random giữa các bài để tránh spam
+            if i < limit - 1:
+                pause_time = random.uniform(2, 5)
+                print(f"⏸️  Nghỉ {pause_time:.1f}s trước khi crawl bài tiếp...")
+                time.sleep(pause_time)
+                
+                # Di chuột random
+                self.human_like_mouse_move()
         
         print(f"\n{'='*60}")
         print(f"✅ HOÀN THÀNH: Crawl được {len(results)} bài viết")

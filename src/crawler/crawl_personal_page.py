@@ -4,6 +4,7 @@ import random
 from urllib.parse import urlparse, parse_qs, unquote
 from pathlib import Path
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 import requests
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -20,7 +21,6 @@ class ThreadsCrawler:
         if not self.driver:
             raise Exception("Browser chưa được khởi tạo!")
         
-        # Session để follow redirect
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -32,7 +32,6 @@ class ThreadsCrawler:
         print(f"\n  🔗 Xử lý link: {redirect_url[:80]}...")
         
         try:
-            # Parse URL để lấy link thật
             parsed = urlparse(redirect_url)
             params = parse_qs(parsed.query)
             
@@ -41,8 +40,7 @@ class ThreadsCrawler:
             else:
                 real_url = redirect_url
             
-            # Follow redirect bằng requests
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(1)
             response = self.session.get(real_url, allow_redirects=True, timeout=10)
             final_url = response.url
             
@@ -62,7 +60,6 @@ class ThreadsCrawler:
         images = []
         
         try:
-            # Tìm tất cả element có class "x1lliihq x5yr21d xh8yej3"
             media_elements = post_element.find_elements(
                 By.CSS_SELECTOR,
                 '.x1lliihq.x5yr21d.xh8yej3'
@@ -74,14 +71,12 @@ class ThreadsCrawler:
                 tag_name = element.tag_name
                 
                 if tag_name == 'video':
-                    # Extract video src
                     video_src = element.get_attribute('src')
                     if video_src:
                         videos.append(video_src)
                         print(f"  ✅ Video {i}: {video_src}")
                 
                 elif tag_name == 'img':
-                    # Extract image src
                     img_src = element.get_attribute('src')
                     if img_src:
                         images.append(img_src)
@@ -92,126 +87,173 @@ class ThreadsCrawler:
         
         return videos, images
     
-    def crawl_profile(self, profile_url):
+    def scroll_until_post_loaded(self, post_index):
+        """Scroll từ từ cho đến khi post tại index xuất hiện và không còn hidden"""
+        print(f"\n  ⏬ Đang scroll để load bài viết {post_index + 1}...")
+        
+        max_attempts = 50
+        for attempt in range(max_attempts):
+            containers = self.driver.find_elements(
+                By.CSS_SELECTOR, 
+                'div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6'
+            )
+            
+            if len(containers) < 3:
+                time.sleep(1)
+                continue
+            
+            posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+            
+            if len(posts) > post_index:
+                post = posts[post_index]
+                hidden_div = post.find_elements(By.CSS_SELECTOR, 'div[hidden]')
+                
+                if not hidden_div:
+                    print(f"  ✅ Bài viết {post_index + 1} đã load xong!")
+                    return True
+            
+            self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.PAGE_DOWN)
+            time.sleep(0.5)
+        
+        print(f"  ⚠️ Timeout: Không load được bài {post_index + 1}")
+        return False
+    
+    def crawl_profile(self, profile_url, limit):
         """
-        Crawl bài viết đầu tiên từ trang cá nhân
+        Crawl nhiều bài viết từ trang cá nhân
+        
+        Args:
+            profile_url: URL trang cá nhân
+            limit: Số bài viết cần crawl
         
         Returns:
-            dict: {content_1, content_2, shopee_links, videos, images}
+            list: Danh sách dict chứa thông tin bài viết
         """
         print(f"\n{'='*60}")
         print(f"🔍 Crawl: {profile_url}")
+        print(f"🎯 Số bài cần crawl: {limit}")
         print(f"{'='*60}\n")
         
-        # Mở trang
         self.driver.get(profile_url)
         time.sleep(5)
         
-        # Tìm container thứ 3
-        containers = self.driver.find_elements(
-            By.CSS_SELECTOR, 
-            'div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6'
-        )
+        results = []
         
-        if len(containers) < 3:
-            raise Exception(f"❌ Chỉ tìm thấy {len(containers)} container!")
-        
-        posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
-        print("✅ Đã lấy được post_list:")
-
-        first_post = posts[1]  # Chỉ lấy bài đầu tiên
-        
-        # Extract content
-        content_1 = ""
-        content_2 = ""
-        redirect_links = []
-        
-        try:
-            text_spans = first_post.find_elements(
+        for i in range(limit):
+            post_index = i  # Index thực trong mảng posts (bắt đầu từ 0)
+            display_number = i + 1  # Số hiển thị cho người dùng (bắt đầu từ 1)
+            
+            print(f"\n{'='*60}")
+            print(f"📝 Crawl bài viết {display_number}/{limit}")
+            print(f"{'='*60}")
+            
+            if not self.scroll_until_post_loaded(post_index):
+                print(f"⚠️ Dừng lại ở bài {display_number - 1}")
+                break
+            
+            containers = self.driver.find_elements(
                 By.CSS_SELECTOR, 
-                'span.x1lliihq.x1plvlek.xryxfnj.x1n2onr6.xyejjpt.x15dsfln.xi7mnp6.x193iq5w.xeuugli.x1fj9vlw.x13faqbe.x1vvkbs.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.x1i0vuye.xjohtrz.xo1l8bm.xp07o12.x1yc453h.xat24cr.xdj266r'
+                'div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6'
             )
             
-            # Content 1
-            if len(text_spans) >= 1:
-                parts = []
-                for child in text_spans[0].find_elements(By.XPATH, './span | ./a'):
-                    text = child.text.strip()
-                    if text:
-                        parts.append(text)
-                    
-                    if child.tag_name == 'a':
-                        href = child.get_attribute('href')
-                        if href and ('l.threads.com' in href or 'shopee.vn' in href):
-                            redirect_links.append(href)
-                
-                content_1 = " ".join(parts)
+            if len(containers) < 3:
+                print("❌ Không tìm thấy container!")
+                break
             
-            # Content 2
-            if len(text_spans) >= 2:
-                parts = []
-                for child in text_spans[1].find_elements(By.XPATH, './span | ./a'):
-                    text = child.text.strip()
-                    if text:
-                        parts.append(text)
-                    
-                    if child.tag_name == 'a':
-                        href = child.get_attribute('href')
-                        if href and ('l.threads.com' in href or 'shopee.vn' in href):
-                            redirect_links.append(href)
+            posts = containers[2].find_elements(By.CSS_SELECTOR, 'div.x78zum5.xdt5ytf')
+            
+            if len(posts) <= post_index:
+                print("❌ Không còn bài viết!")
+                break
+            
+            current_post = posts[post_index]
+            
+            content_1 = ""
+            content_2 = ""
+            redirect_links = []
+            
+            try:
+                text_spans = current_post.find_elements(
+                    By.CSS_SELECTOR, 
+                    'span.x1lliihq.x1plvlek.xryxfnj.x1n2onr6.xyejjpt.x15dsfln.xi7mnp6.x193iq5w.xeuugli.x1fj9vlw.x13faqbe.x1vvkbs.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.x1i0vuye.xjohtrz.xo1l8bm.xp07o12.x1yc453h.xat24cr.xdj266r'
+                )
                 
-                content_2 = " ".join(parts)
-        except:
-            pass
+                if len(text_spans) >= 1:
+                    parts = []
+                    for child in text_spans[0].find_elements(By.XPATH, './span | ./a'):
+                        text = child.text.strip()
+                        if text:
+                            parts.append(text)
+                        
+                        if child.tag_name == 'a':
+                            href = child.get_attribute('href')
+                            if href and ('l.threads.com' in href or 'shopee.vn' in href):
+                                redirect_links.append(href)
+                    
+                    content_1 = " ".join(parts)
+                
+                if len(text_spans) >= 2:
+                    parts = []
+                    for child in text_spans[1].find_elements(By.XPATH, './span | ./a'):
+                        text = child.text.strip()
+                        if text:
+                            parts.append(text)
+                        
+                        if child.tag_name == 'a':
+                            href = child.get_attribute('href')
+                            if href and ('l.threads.com' in href or 'shopee.vn' in href):
+                                redirect_links.append(href)
+                    
+                    content_2 = " ".join(parts)
+            except:
+                pass
+            
+            print(f"\n{'='*60}")
+            print(f"🎬 Đang extract video/image...")
+            print(f"{'='*60}")
+            videos, images = self.extract_media(current_post)
+            
+            print(f"\n{'='*60}")
+            print(f"🔗 Tìm thấy {len(redirect_links)} links")
+            print(f"{'='*60}")
+            
+            shopee_links = []
+            for link in redirect_links:
+                shopee_link = self.extract_shopee_link(link)
+                if shopee_link:
+                    shopee_links.append(shopee_link)
+            
+            result = {
+                'content_1': content_1,
+                'content_2': content_2,
+                'shopee_links': shopee_links,
+                'videos': videos,
+                'images': images
+            }
+            
+            results.append(result)
+            
+            print(f"\n{'='*60}")
+            print(f"📊 KẾT QUẢ BÀI {display_number}")
+            print(f"{'='*60}")
+            print(f"Content 1: {content_1[:100]}...")
+            print(f"Content 2: {content_2[:100] if content_2 else 'None'}...")
+            print(f"Shopee Links: {len(shopee_links)}")
+            print(f"Videos: {len(videos)}")
+            print(f"Images: {len(images)}")
+            print(f"{'='*60}\n")
         
-        # Extract video và image
         print(f"\n{'='*60}")
-        print(f"🎬 Đang extract video/image...")
-        print(f"{'='*60}")
-        videos, images = self.extract_media(first_post)
-        
-        # Extract Shopee links
-        print(f"\n{'='*60}")
-        print(f"🔗 Tìm thấy {len(redirect_links)} links")
-        print(f"{'='*60}")
-        
-        shopee_links = []
-        for link in redirect_links:
-            shopee_link = self.extract_shopee_link(link)
-            if shopee_link:
-                shopee_links.append(shopee_link)
-        
-        result = {
-            'content_1': content_1,
-            'content_2': content_2,
-            'shopee_links': shopee_links,
-            'videos': videos,
-            'images': images
-        }
-        
-        print(f"\n{'='*60}")
-        print(f"📊 KẾT QUẢ")
-        print(f"{'='*60}")
-        print(f"Content 1: {content_1}")
-        print(f"Content 2: {content_2}")
-        print(f"Shopee Links: {len(shopee_links)}")
-        for i, link in enumerate(shopee_links, 1):
-            print(f"  {i}. {link}")
-        print(f"Videos: {len(videos)}")
-        for i, video in enumerate(videos, 1):
-            print(f"  {i}. {video}")
-        print(f"Images: {len(images)}")
-        for i, image in enumerate(images, 1):
-            print(f"  {i}. {image}")
+        print(f"✅ HOÀN THÀNH: Crawl được {len(results)} bài viết")
         print(f"{'='*60}\n")
         
-        return result
+        return results
 
 
 def test_crawler():
     """Test crawler"""
     
-    target_url = "https://www.threads.com/@reviewby_quyt"
+    target_url = "https://www.threads.com/@cam_review08"
     
     print("\n" + "="*60)
     print("🧪 TEST THREADS CRAWLER")
@@ -222,7 +264,7 @@ def test_crawler():
     try:
         browser.init_driver()
         crawler = ThreadsCrawler(browser)
-        post = crawler.crawl_profile(target_url)
+        posts = crawler.crawl_profile(target_url, limit=30)
         
         input("\nNhấn Enter để đóng...")
         

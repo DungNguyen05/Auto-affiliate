@@ -27,9 +27,9 @@ def main():
     print("="*80 + "\n")
     
     # ====== CONFIG ======
-    TARGET_PROFILE = "https://www.threads.com/@cam_review08"
-    CRAWL_LIMIT = 20  # Số bài viết cần crawl
-    POST_LIMIT = 20   # Số bài viết cần đăng
+    TARGET_PROFILE = "https://www.threads.com/@puca.daily"
+    CRAWL_LIMIT = 3  # Số bài viết cần crawl
+    POST_LIMIT = 3   # Số bài viết cần đăng
     
     # ====== KHỞI TẠO ======
     browser = None
@@ -161,8 +161,8 @@ def main():
             
             # Đợi giữa các bài đăng
             if i < len(unposted):
-                print("\n⏳ Đợi 10 giây trước khi đăng bài tiếp...")
-                time.sleep(10)
+                print("\n⏳ Đợi 30 giây trước khi đăng bài tiếp...")
+                time.sleep(30)
         
         # THỐNG KÊ
         print("\n" + "=" * 80)

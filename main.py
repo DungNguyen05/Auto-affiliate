@@ -27,7 +27,15 @@ def main():
     print("="*80 + "\n")
     
     # ====== CONFIG ======
-    TARGET_PROFILE = "https://www.threads.com/@puca.daily"
+    TARGET_PROFILE = "https://www.threads.com/@wandererthroughspace"
+    # https://www.threads.com/@hathu_vy
+    # https://www.threads.com/@cam_review08
+    # https://www.threads.com/@iam.lamii_
+    # https://www.threads.com/@__phlinh.ne
+    # https://www.threads.com/@puca.daily
+    # https://www.threads.com/@minhmiu2024
+    # https://www.threads.com/@luulam.010
+    # https://www.threads.com/@wandererthroughspace
     CRAWL_LIMIT = 15  # Số bài viết cần crawl
     POST_LIMIT = 15   # Số bài viết cần đăng
     
@@ -37,7 +45,7 @@ def main():
     downloader = MediaDownloader()
     
     try:
-        browser = BrowserManager(headless=True)
+        browser = BrowserManager(headless=False)
         browser.init_driver()
         
         # ===== GIAI ĐOẠN 1: CRAWL VÀ LƯU DATABASE =====

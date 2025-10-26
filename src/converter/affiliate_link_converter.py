@@ -45,7 +45,7 @@ class ShopeeConverter:
             # 1. Vào trang custom link
             print("📍 Bước 1: Mở trang affiliate...")
             self.driver.get(SHOPEE_AFFILIATE_URL)
-            time.sleep(3)
+            # time.sleep(3)
             
             # 2. Tìm textarea và paste link
             print("📍 Bước 2: Tìm ô nhập link...")
@@ -58,9 +58,9 @@ class ShopeeConverter:
             # Clear và nhập link
             print("📍 Bước 3: Nhập link vào ô...")
             textarea.clear()
-            time.sleep(0.5)
+            # time.sleep(0.5)
             textarea.send_keys(shopee_url)
-            time.sleep(1)
+            # time.sleep(1)
             
             # 3. Click button "Lấy link"
             print("📍 Bước 4: Click nút 'Lấy link'...")

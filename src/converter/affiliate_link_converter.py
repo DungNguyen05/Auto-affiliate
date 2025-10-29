@@ -27,28 +27,18 @@ class ShopeeConverter:
             raise Exception("Browser chưa được khởi tạo!")
     
     def convert_to_affiliate(self, shopee_url):
-        """
-        Convert link Shopee thường thành link affiliate
-        
-        Args:
-            shopee_url (str): Link Shopee gốc
-            
-        Returns:
-            str: Link affiliate hoặc None nếu thất bại
-        """
-        
         print(f"\n{'='*60}")
         print(f"🔄 Đang convert link: {shopee_url}")
         print(f"{'='*60}\n")
         
         try:
-            # 1. Vào trang custom link
-            print("📍 Bước 1: Mở trang affiliate...")
-            self.driver.get(SHOPEE_AFFILIATE_URL)
-            # time.sleep(3)
-            
-            # 2. Tìm textarea và paste link
-            print("📍 Bước 2: Tìm ô nhập link...")
+            # 1. REFRESH trang để reset state
+            print("📍 Bước 0: Refresh trang Shopee...")
+            self.driver.refresh()
+            time.sleep(2)
+
+            # 2. Tiếp tục như cũ
+            print("📍 Bước 1: Tìm ô nhập link...")
             textarea = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//div[@id='customLink_original_url']//textarea")

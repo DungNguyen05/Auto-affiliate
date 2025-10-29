@@ -33,9 +33,11 @@ class ShopeeConverter:
         
         try:
             # 1. REFRESH trang để reset state
-            print("📍 Bước 0: Refresh trang Shopee...")
+            print("📍 Bước 0: Mở và refresh trang Shopee...")
+            self.driver.get(SHOPEE_AFFILIATE_URL)
+            time.sleep(1)
             self.driver.refresh()
-            time.sleep(2)
+            time.sleep(1)
 
             # 2. Tiếp tục như cũ
             print("📍 Bước 1: Tìm ô nhập link...")
